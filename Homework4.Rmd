@@ -13,8 +13,9 @@ library(lubridate)
 library(viridis)
 library(ggridges)
 
-traffic <- read.csv("~/Homework 4/MetroInterstateTrafficVolume.csv", 
+traffic <- read.csv("~/Homework 4/MetroInterstateTrafficVolume.csv",
                     header = TRUE, sep = ",")
+
 
 holidays <- traffic %>%
   filter(holiday != "None") %>%
@@ -176,5 +177,37 @@ ggplot(traffic_seasons, aes(x = avg_temp_f, y = daily_volume)) +
         strip.text = element_text(face = "bold", size = 14),
         plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
   )
+
+```
+
+### Violin plot for day of the week volume
+
+Write about the plot here
+
+``` {r days_of_week, echo = FALSE, fig.width=13, fig.height = 8, dpi = 300}
+
+traffic_weekday <-
+  traffic_converted %>%
+  mutate(day_of_week = wday(date, label = TRUE, abbr = FALSE)) %>%
+  group_by(date, day_of_week) %>%
+  summarise(weekday_volume = sum(daily_volume), .groups = "drop")
+
+ggplot(traffic_weekday, aes(x = day_of_week, y = weekday_volume, fill = day_of_week)) +
+  geom_violin(alpha = 0.75) +
+  scale_fill_viridis_d() +
+  scale_y_continuous(labels = scales::label_comma(),
+                     breaks = seq(0, 275000, 55000),
+                     limits = c(0, 275000)) +
+  labs(title = "Daily Traffic Volume by Day of Week",
+       x = "",
+       y = "Daily Volume") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 14),
+        axis.title.x = element_text(size = 14),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(face = "bold", size = 14),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 16))
 
 ```
