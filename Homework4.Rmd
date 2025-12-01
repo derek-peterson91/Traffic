@@ -16,6 +16,10 @@ library(ggridges)
 traffic <- read.csv("MetroInterstateTrafficVolume.csv", 
                     header = TRUE, sep = ",")
 
+holidays <- traffic %>%
+  filter(holiday != "None") %>%
+  mutate(date = as_date(date_time)) %>%
+  select(date)
 
 daily_data <- traffic %>%
   mutate(date = as_date(date_time),
