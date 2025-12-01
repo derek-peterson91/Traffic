@@ -4,9 +4,16 @@ library(lubridate)
 library(viridis)
 library(ggridges)
 
-traffic <- read.csv("~/Homework 4/MetroInterstateTrafficVolume.csv", 
+# traffic <- read.csv("~/Homework 4/MetroInterstateTrafficVolume.csv", 
+#                     header = TRUE, sep = ",")
+
+traffic <- read.csv("MetroInterstateTrafficVolume.csv", 
                     header = TRUE, sep = ",")
 
+holidays <- traffic %>%
+  filter(holiday != "None") %>%
+  mutate(date = as_date(date_time)) %>%
+  select(date)
 
 daily_data <- traffic %>%
   mutate(date = as_date(date_time),
@@ -15,7 +22,7 @@ daily_data <- traffic %>%
   group_by(date, year, month) %>%
   summarise(daily_volume = sum(traffic_volume), .groups = "drop") %>%
   mutate(day_of_year = yday(date)) %>%
-  filter(year != 2012) # filter out 2012, full years of data start in 2013
+  filter(year != 2012 & !(date %in% holidays$date)) # filter out 2012, full years of data start in 2013
 
 ############ Daily volume - Facet by year ############
 
@@ -126,7 +133,7 @@ traffic %>%
   mutate(day_of_year = yday(date),
          year = year(date),
          month = month(date, label = TRUE, abbr = FALSE)) %>% 
-  filter(year != 2012) 
+  filter(year != 2012 & !(date %in% holidays$date)) 
 
 min(traffic_converted$avg_temp_f)
 max(traffic_converted$avg_temp_f)
@@ -144,6 +151,43 @@ ggplot(traffic_converted, aes(x = avg_temp_f, y = month, fill = after_stat(x))) 
     axis.text.x = element_text(size = 14)
   )
   
+
+################################
+
+traffic_seasons <- 
+traffic_converted %>%
+  mutate(season = case_when(
+    month %in% c("December", "January", "February") ~ "Winter",
+    month %in% c("March", "April", "May") ~ "Spring",
+    month %in% c("June", "July", "August") ~ "Summer",
+    month %in% c("September", "October", "November") ~ "Fall",
+  ),
+  season = factor(season, levels = c("Winter", "Spring", "Summer", "Fall")))
+
+ggplot(traffic_seasons, aes(x = avg_temp_f, y = daily_volume)) +
+  geom_point(aes(color = factor(season)), size = 3, alpha = 0.75)+
+  facet_wrap(~year, ncol = 3)+
+  geom_smooth(method = "lm", se = FALSE, color = 'gray30') + 
+  scale_y_continuous(labels = scales::label_comma(),
+                     breaks = seq(0, 275000, 55000),
+                     limits = c(0, 275000))+
+  scale_color_manual(values = c("Winter" = "#3498db",    # blue
+                                "Spring" = "#2ecc71",    # green
+                                "Summer" = "#f39c12",    # orange
+                                "Fall" = "#e74c3c"))+
+  labs(title = "Daily Traffic Volume vs Temperature by Year",
+       y = "Daily Volume",
+       x = "Average Daily Temperature (°F)",
+       color = "Season") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 14),
+        axis.title.x = element_text(size = 14),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(face = "bold", size = 14),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
+  )
+
          
 
 
