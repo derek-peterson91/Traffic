@@ -1,0 +1,171 @@
+---
+title: "Homework 4"
+author: "Dana Peterson"
+date: "2025-12-1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lubridate)
+library(viridis)
+library(ggridges)
+
+traffic <- read.csv("~/Homework 4/MetroInterstateTrafficVolume.csv", 
+                    header = TRUE, sep = ",")
+
+
+daily_data <- traffic %>%
+  mutate(date = as_date(date_time),
+         year = year(date_time),
+         month = month(date_time)) %>%
+  group_by(date, year, month) %>%
+  summarise(daily_volume = sum(traffic_volume), .groups = "drop") %>%
+  mutate(day_of_year = yday(date)) %>%
+  filter(year != 2012) # filter out 2012, full years of data start in 2013
+```
+
+### Graph #1
+
+The yearly faceted scatterplot provides a clearer perspective on traffic behavior than the raw hourly data alone, for formatting purposes the partial data from 2012 was removed from this figure. What stands out is the absence of a predictable seasonal cycle. Some years hint at softer periods in fall or winter, but others maintain remarkably steady volumes month after month. This stability suggests that traffic along the monitored corridor is driven less by seasonal variation and more by consistent, year-round commuter patterns. The visualization also reflects gaps in the data record, but even within available observations, the dominant story is the regularity of daily traffic volumes rather than cyclical peaks and troughs.
+
+```{r plot1, echo = FALSE, fig.width = 13, fig.height = 8, dpi = 300}
+
+ggplot(daily_data, aes(x = day_of_year, y = daily_volume, color = factor(month))) +
+  geom_point(size = 2.5, alpha = 0.75) +
+  facet_wrap(~year, ncol = 3) +
+  scale_x_continuous(breaks = c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335),
+                     labels = month.abb) +
+  scale_color_viridis_d(labels = month.abb, option = "viridis") +
+  scale_y_continuous(labels = scales::label_comma(),
+                     breaks = seq(0, 260000, by = 35000),
+                     limits = c(0, 260000)) +
+  labs(title = "Daily Traffic Volume by Year",
+       y = "Daily Volume",
+       color = "Month") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 14),
+        axis.title.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(face = "bold", size = 14),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank()
+        )
+```
+
+### Graph #2
+
+This is where you write about graph #2 (holidays)
+
+```{r plot2, echo=FALSE, fig.width = 13, fig.height = 8, dpi = 300}
+
+holidays <- 
+traffic %>%
+  mutate(date = as.Date(date_time)) %>%
+  select(holiday, date) %>%
+  filter(holiday != "None")
+
+holiday_data <- 
+daily_data %>%
+  left_join(holidays, by = 'date') %>%
+  filter(!is.na(holiday))
+
+ggplot(data = holiday_data, aes(x = holiday, y = daily_volume)) + 
+  geom_boxplot(aes(fill = holiday), alpha = 0.75) +
+  scale_fill_viridis_d(option = "viridis") +
+  scale_y_continuous(labels = scales::label_comma(),
+                     breaks = c(20000, 40000, 60000, 80000, 100000, 120000),
+                     limits = c(20000, 120000)) +
+  labs(x = "",
+       y = "Daily Volume",
+       title = "Distribution of Daily Traffic by Holiday")+
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.position = 'none',
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.y = element_text(size = 14),
+        axis.text.x = element_text(size = 14, angle = 60, hjust = 1,
+                                   margin = margin(t = 8)),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
+        )
+```
+
+### Graph #3
+
+The ridgeline plot organizes weather conditions in a way that underscores their seasonal rhythm and their potential link to travel behavior. Snow concentrates in the winter months, thunderstorms appear during warmer periods, and clear or cloudy days fill the majority of the year. By displaying weather types across the annual calendar, the plot provides environmental context for interpreting traffic volume stability or occasional anomalies. Serving as a reminder that while weather varies by season in Minneesota, those variations do not necessarily translate into large changes in daily traffic volume.
+
+```{r plot3, echo=FALSE, fig.width=13, fig.height=8, dpi=300}
+
+daily_weather <- traffic %>%
+  mutate(date = as_date(date_time)) %>%
+  group_by(date, weather_main) %>%
+  summarise(hours = n(), .groups = "drop_last") %>%
+  slice_max(hours, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  mutate(day_of_year = yday(date)) %>%
+  filter(year(date) != 2012)
+
+# Create ridgeline plot
+ggplot(daily_weather, aes(x = day_of_year, y = weather_main, fill = weather_main)) +
+  geom_density_ridges(alpha = 0.75, bandwidth = 27, rel_min_height = 0.005) +
+  scale_fill_viridis_d() +
+  scale_x_continuous(breaks = c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335),
+                     labels = month.abb) +
+  scale_y_discrete(expand = expansion(mult = c(0.01, 0.28)))+
+  labs(title = "Weather Distribution Throughout the Year",
+       x = "Month",
+       y = "Weather Type") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 16),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 16, hjust = 0.5, face = "bold"))
+```
+
+### Graph #4
+
+The temperature ridgeline illustrates the annual shift in climate, capturing the expected progression from cold winter temperatures to peak summer heat. While primarily a descriptive view of Minneapolis–St. Paul’s seasonal temperature curve, it also frames the broader environment in which traffic patterns occur. Although the graph does not directly incorporate traffic volume, it adds environmental context for the dataset as a whole. Understanding the seasonal temperature pattern helps frame the conditions under which traffic occurs, even if temperature itself does not appear to drive meaningful variation in daily traffic volume in this dataset.
+
+``` {r plot4, echo = FALSE, fig.width=13, fig.height = 8, dpi = 300}
+
+traffic_converted <- 
+traffic %>%
+  filter(temp != 0) %>%
+  mutate(temperature_f = (temp * (9/5)) - 459.67,
+         date = as_date(date_time)) %>%
+  group_by(date) %>%
+  summarize(avg_temp_f = mean(temperature_f, na.rm = TRUE),
+            total_precip = sum(rain_1h + snow_1h),
+            daily_volume = sum(traffic_volume), .groups = 'drop') %>%
+  mutate(day_of_year = yday(date),
+         year = year(date),
+         month = month(date, label = TRUE, abbr = FALSE)) %>% 
+  filter(year != 2012) 
+
+ggplot(traffic_converted, aes(x = avg_temp_f, y = month, fill = after_stat(x))) + 
+  geom_density_ridges_gradient(alpha = 0.75, scale = 1.5, bandwidth = 3,
+                               rel_min_height = 0.0025) +
+  scale_fill_viridis_c(option = "viridis") +
+  scale_y_discrete(limits = rev(month.name)) +
+  labs(title = "Average Daily Temperature by Month",
+       y = "",
+       fill = "",
+       x = "Average Daily Temperature (°F)") +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14),
+    axis.title.x = element_text(size = 16, color = "gray25"),
+    plot.title = element_text(size = 16, hjust = 0.5, face= "bold"),
+    legend.position = "none"
+  )
+
+```
