@@ -4,11 +4,10 @@ library(lubridate)
 library(viridis)
 library(ggridges)
 
-# traffic <- read.csv("~/Homework 4/MetroInterstateTrafficVolume.csv", 
-#                     header = TRUE, sep = ",")
-
-traffic <- read.csv("MetroInterstateTrafficVolume.csv", 
+traffic <- read.csv("~/Homework 4/MetroInterstateTrafficVolume.csv",
                     header = TRUE, sep = ",")
+
+
 
 holidays <- traffic %>%
   filter(holiday != "None") %>%
