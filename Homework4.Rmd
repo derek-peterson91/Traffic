@@ -63,45 +63,6 @@ ggplot(daily_data, aes(x = day_of_year, y = daily_volume, color = factor(month))
         )
 ```
 
-### Graph #2
-
-This is where you write about graph #2 (holidays)
-
-```{r plot2, echo=FALSE, fig.width = 13, fig.height = 8, dpi = 300}
-
-holidays <- 
-traffic %>%
-  mutate(date = as.Date(date_time)) %>%
-  select(holiday, date) %>%
-  filter(holiday != "None")
-
-holiday_data <- 
-daily_data %>%
-  left_join(holidays, by = 'date') %>%
-  filter(!is.na(holiday))
-
-ggplot(data = holiday_data, aes(x = holiday, y = daily_volume)) + 
-  geom_boxplot(aes(fill = holiday), alpha = 0.75) +
-  scale_fill_viridis_d(option = "viridis") +
-  scale_y_continuous(labels = scales::label_comma(),
-                     breaks = c(20000, 40000, 60000, 80000, 100000, 120000),
-                     limits = c(20000, 120000)) +
-  labs(x = "",
-       y = "Daily Volume",
-       title = "Distribution of Daily Traffic by Holiday")+
-  theme_minimal() +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        legend.position = 'none',
-        axis.title.x = element_text(size = 16),
-        axis.title.y = element_text(size = 16),
-        axis.text.y = element_text(size = 14),
-        axis.text.x = element_text(size = 14, angle = 60, hjust = 1,
-                                   margin = margin(t = 8)),
-        plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
-        )
-```
-
 ### Graph #3
 
 The ridgeline plot organizes weather conditions in a way that underscores their seasonal rhythm and their potential link to travel behavior. Snow concentrates in the winter months, thunderstorms appear during warmer periods, and clear or cloudy days fill the majority of the year. By displaying weather types across the annual calendar, the plot provides environmental context for interpreting traffic volume stability or occasional anomalies. Serving as a reminder that while weather varies by season in Minneesota, those variations do not necessarily translate into large changes in daily traffic volume.
@@ -115,7 +76,7 @@ daily_weather <- traffic %>%
   slice_max(hours, n = 1, with_ties = FALSE) %>%
   ungroup() %>%
   mutate(day_of_year = yday(date)) %>%
-  filter(year != 2012 & !(date %in% holidays$date))
+  filter(!(date %in% holidays$date))
 
 # Create ridgeline plot
 ggplot(daily_weather, aes(x = day_of_year, y = weather_main, fill = weather_main)) +
